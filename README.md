@@ -19,6 +19,7 @@ GROUP BY c.store_id
 HAVING COUNT(c.store_id) > 300;
 ```
 
+![alt text](1.JPG)
 
 # Задание 2
 Получите количество фильмов, продолжительность которых больше средней продолжительности всех фильмов.
@@ -30,6 +31,7 @@ SELECT (SELECT  AVG(`length`) from film) AS Average,
        COUNT(1)                          AS 'Long Films' FROM film  WHERE `length` > (SELECT AVG(`length`) from film) ;
 ```
 
+![alt text](2.JPG)
 
 # Задание 3
 Получите информацию, за какой месяц была получена наибольшая сумма платежей, и добавьте информацию по количеству аренд за этот месяц.
@@ -41,5 +43,6 @@ SELECT DATE_FORMAT(payment_date, '%Y-%m') AS YearMonth,
        SUM(amount)         AS Amount FROM payment
 GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
 ORDER BY Payments  DESC LIMIT 1 ;
-
 ```
+
+![alt text](3.JPG)
