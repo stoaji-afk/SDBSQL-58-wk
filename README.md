@@ -36,10 +36,11 @@ SELECT (SELECT  AVG(`length`) from film) AS Average,
 
 # Решение
 ``` sql
-SELECT MONTH(payment_date) AS Month, 
+SELECT DATE_FORMAT(payment_date, '%Y-%m') AS YearMonth,
        COUNT(payment_id)   As Payments, 
        SUM(amount)         AS Amount FROM payment
-GROUP BY MONTH(payment_date) 
-ORDER BY COUNT(payment_id)  DESC LIMIT 1 ;
+GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
+ORDER BY Payments  DESC LIMIT 1 ;
+
 ```
 ![alt text](3.jpg)
