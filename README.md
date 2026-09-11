@@ -18,7 +18,7 @@ JOIN address a  ON s.address_id = a.address_id
 GROUP BY c.store_id 
 HAVING COUNT(c.store_id) > 300;
 ```
-
+![alt text](1.jpg)
 
 # Задание 2
 Получите количество фильмов, продолжительность которых больше средней продолжительности всех фильмов.
@@ -29,7 +29,7 @@ SELECT (SELECT  AVG(`length`) from film) AS Average,
        (SELECT COUNT(1) from film)       AS 'All films', 
        COUNT(1)                          AS 'Long Films' FROM film  WHERE `length` > (SELECT AVG(`length`) from film) ;
 ```
-
+![alt text](2.jpg)
 
 # Задание 3
 Получите информацию, за какой месяц была получена наибольшая сумма платежей, и добавьте информацию по количеству аренд за этот месяц.
@@ -42,3 +42,4 @@ SELECT MONTH(payment_date) AS Month,
 GROUP BY MONTH(payment_date) 
 ORDER BY COUNT(payment_id)  DESC LIMIT 1 ;
 ```
+![alt text](3.jpg)
