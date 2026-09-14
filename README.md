@@ -1,48 +1,72 @@
-# Домашнее задание к занятию "SQL. Часть 2" - Сторожев Алексей
+# Домашнее задание к занятию "Индексы" - Сторожев Алексей
 
 # Задание 1
-Одним запросом получите информацию о магазине, в котором обслуживается более 300 покупателей, и выведите в результат следующую информацию:
-
-- фамилия и имя сотрудника из этого магазина;
-- город нахождения магазина;
-- количество пользователей, закреплённых в этом магазине;
+Напишите запрос к учебной базе данных, который вернёт процентное отношение общего размера всех индексов к общему размеру всех таблиц.
 
 # Решение
 ``` sql
-SELECT CONCAT(s2.first_name, ' ', s2.last_name) AS Name, 
-       a.address                                AS Address, 
-       COUNT(c.store_id)                        AS Customers FROM store s 
-JOIN customer c ON s.store_id = c.store_id 
-JOIN staff s2   ON s.manager_staff_id = s2.staff_id 
-JOIN address a  ON s.address_id = a.address_id 
-GROUP BY c.store_id 
-HAVING COUNT(c.store_id) > 300;
+SELECT ROUND((SUM(index_length) / (SUM(data_length) + SUM(index_length))) * 100, 2) AS 'Размер индексов к общему размеру таблиц, %', 
+                                   SUM(index_length) AS 'Общий размер всех индексов, бит', 
+                                   SUM(data_length)+SUM(index_length) AS 'Общий размер всех таблиц, бит'
+FROM information_schema.tables
+WHERE information_schema.tables.table_schema = 'sakila';
 ```
 
 ![alt text](1.JPG)
 
 # Задание 2
-Получите количество фильмов, продолжительность которых больше средней продолжительности всех фильмов.
+Выполните explain analyze следующего запроса:
+``` sql
+select distinct concat(c.last_name, ' ', c.first_name), sum(p.amount) over (partition by c.customer_id, f.title)
+from payment p, rental r, customer c, inventory i, film f
+where date(p.payment_date) = '2005-07-30' 
+  and p.payment_date = r.rental_date 
+  and r.customer_id = c.customer_id 
+  and i.inventory_id = r.inventory_id
+```
+перечислите узкие места;
+оптимизируйте запрос: внесите корректировки по использованию операторов, при необходимости добавьте индексы.
 
 # Решение
-``` sql
-SELECT (SELECT  AVG(`length`) from film) AS Average, 
-       (SELECT COUNT(1) from film)       AS 'All films', 
-       COUNT(1)                          AS 'Long Films' FROM film  WHERE `length` > (SELECT AVG(`length`) from film) ;
+Результат запроса с анализом.
+```sql
+EXPLAIN ANALYZE
+select distinct concat(c.last_name, ' ', c.first_name), sum(p.amount) over (partition by c.customer_id, f.title)
+from payment p, rental r, customer c, inventory i, film f
+where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and r.customer_id = c.customer_id and i.inventory_id = r.inventory_id
 ```
-
 ![alt text](2.JPG)
 
-# Задание 3
-Получите информацию, за какой месяц была получена наибольшая сумма платежей, и добавьте информацию по количеству аренд за этот месяц.
+По выводу команды обнаружены следующие узкие места:
 
-# Решение
-``` sql
-SELECT DATE_FORMAT(payment_date, '%Y-%m') AS YearMonth,
-       COUNT(payment_id)   As Payments, 
-       SUM(amount)         AS Amount FROM payment
-GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
-ORDER BY Payments  DESC LIMIT 1 ;
-```
-
+Дублирующие данные (Temporary table with deduplication). Была создана временная таблица с удалёнными дублирующими данными. На что было потрачено очень много времени (actual time=30376..30376).
+Отсутствие группировки. Использованы оконные функции (Window aggregate with buffering) вместо группировки. Затрачено времени (actual time=13760..29069). Если использовать группировку, то мы получим уменьшение количества строк и соответственно уменьшение времени обработки.
+Сортировка (Sort) по двум полям c.customer_id, f.title. Затрачено времени (actual time=13760..14133).
 ![alt text](3.JPG)
+
+Проведена оптимизация:
+
+удалена сортировка,
+удалена таблица film,
+удалена таблица inventory,
+добавлена группировка.
+Результат оптимизированного запроса.
+```sql
+select distinct concat(c.last_name, ' ', c.first_name), sum(p.amount)
+from payment p, rental r, customer c
+where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and r.customer_id = c.customer_id
+GROUP BY concat(c.last_name, ' ', c.first_name);
+```
+![alt text](4.JPG)
+
+Реультат запроса с анализом.
+``sql
+EXPLAIN ANALYZE
+select distinct concat(c.last_name, ' ', c.first_name), sum(p.amount)
+from payment p, rental r, customer c
+where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and r.customer_id = c.customer_id
+GROUP BY concat(c.last_name, ' ', c.first_name);
+```
+![alt text](5.JPG)
+
+![alt text](5.JPG)
